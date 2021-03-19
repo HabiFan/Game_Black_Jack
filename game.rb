@@ -4,4 +4,7 @@ require_relative 'player'
 
 class Game
 
+  @bank = 0
+  
+
 end
