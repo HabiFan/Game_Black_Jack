@@ -1,31 +1,18 @@
 # frozen_string_literal: true
 
+# rubocop:disable Metrics/ClassLength
+
 require_relative 'modules'
 require_relative 'card'
 require_relative 'player'
 
 class Game
   include Validation
-
-  ACTION_GAME = <<~HERE
-    Выберите нужное действие
-    1. Пропустить ход
-    2. Добавить карту
-    3. Открыть карты
-  HERE
-
-  INFO_LABEL = 'Выберите нужное действие'
-
-  MENU_GAME = <<~HERE
-    Выберите нужное действие
-    1. Начать новую игру
-    2. Закончить игру
-  HERE
+  include GameLabels
 
   def initialize
     @bank = 0
     @rate = 10
-    @stop_game = false
     @cards = Card.new
     start_game
   end
@@ -49,33 +36,24 @@ class Game
     puts "Сумма в банке: #{@bank}$"
     add_card(@dealer, 2)
     add_card(@player, 2)
-    choice_action(@player)
+    choice_player
   end
 
   def add_card(player, num_card = 1)
     puts "Игрок #{player.name} взял карту"
     player.add_card(@cards.give_card(num_card))
     puts player.to_s(show: !player.dealer?).to_s
-    game_result if (@dealer.cards.size == 3) && (@player.cards.size == 3)
+    game_result if @dealer.cards.size == 3 && @player.cards.size == 3
+    choice_action(player) unless num_card > 1
   end
 
   def choice_action(player)
-    if player.dealer?
-      puts 'Ход дилера:'
-      choice_dealer
-    else
-      puts "Ход игрока #{@player.name}: "
-      choice_player
-    end
+    player.dealer? ? choice_player : choice_dealer
   end
 
   def skip(player)
     puts "Игрок #{player.name} пропустил ход."
-    if player.dealer?
-      choice_action(@player)
-    else
-      choice_action(@dealer)
-    end
+    choice_action(player)
   end
 
   def open_card(player)
@@ -83,11 +61,14 @@ class Game
     game_result
   end
 
+  # rubocop:disable Metrics/MethodLength
+  # rubocop:disable Metrics/AbcSize
+
   def game_result
-    @stop_game = true
-    if (result_points(@player) < result_points(@dealer)) && (@player.total_points <= 21)
+    if (@player.total_points <= 21) && ((21 - @player.total_points).abs < (21 - @dealer.total_points).abs)
       winner(@player)
-    elsif (result_points(@player) == result_points(@dealer)) && (@player.total_points && @dealer.total_points <= 21)
+    elsif ((21 - @player.total_points) == (21 - @dealer.total_points)) &&
+          (@player.total_points <= 21 && @dealer.total_points <= 21)
       winner(@player, @dealer)
     elsif @dealer.total_points <= 21
       winner(@dealer)
@@ -97,48 +78,34 @@ class Game
     end
   end
 
+  # rubocop:enable Metrics/MethodLength
+  # rubocop:enable Metrics/AbcSize
+
   def choice_player
     loop do
       puts ACTION_GAME
       case gets.chomp.to_i
       when 1 then skip(@player)
-      when 2
-        add_card(@player, 1)
-        choice_dealer
+      when 2 then add_card(@player, 1)
       when 3 then open_card(@player)
       else
         puts INFO_LABEL; end
-      break if @stop_game
     end
   end
 
   def choice_dealer
-    if @dealer.total_points >= 17
-      skip(@dealer)
-    elsif @dealer.cards.size == 3
-      open_card(@dealer)
-    else
-      add_card(@dealer, 1)
-      choice_player
-    end
+    puts 'Ход игрока Дилера: '
+    @dealer.total_points >= 17 ? skip(@dealer) : add_card(@dealer, 1)
   end
 
-  def result_points(player)
-    21 - player.total_points
-  end
-
-  def winner(*args)
+  def winner(*players)
     print 'Результат игры: '
-    if args.count > 1
+    if players.size > 1
       puts "Ничья! Выйгрыш: по #{@rate}$"
-      args.each do |player|
-        player.purse_add(@rate)
-        puts "Игрок #{player.name}: #{player}"
-      end
+      players.each { |player| player.spend(@rate) }
     else
-      puts "Выграл #{args[0].name}! Выйгрыш: #{@bank}$"
-      args[0].purse_add(@bank)
-      info_game(show_dealer: true)
+      puts "Выграл #{players.first.name}! Выйгрыш: #{@bank}$"
+      players.first.purse_add(@bank)
     end
     end_game
   end
@@ -149,6 +116,7 @@ class Game
   end
 
   def end_game
+    info_game(show_dealer: true)
     @bank = 0
     @dealer.reset_cards
     @player.reset_cards
@@ -156,14 +124,17 @@ class Game
   end
 
   def restart_game
+    puts MENU_GAME
     loop do
-      puts MENU_GAME
       case gets.chomp.to_i
       when 1 then start_new_game
-      when 2 then @stop_game = true
+      when 2 then exit!
       else
         puts INFO_LABEL; end
-      break if @stop_game
     end
   end
 end
+
+# rubocop:enable Metrics/ClassLength
+
+Game.new

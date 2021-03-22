@@ -28,6 +28,12 @@ class Player
   def total_points
     return if cards.empty? || cards.nil?
 
+    scope_cards(cards)
+  end
+
+  # rubocop:disable Metrics/MethodLength
+
+  def scope_cards(cards)
     points = 0
     cards.each do |card|
       points += case card[0]
@@ -41,6 +47,8 @@ class Player
     end
     points
   end
+
+  # rubocop:enable Metrics/MethodLength
 
   def dealer?
     @type_player == :dealer
@@ -58,8 +66,8 @@ class Player
     @purse -= sum
   end
 
-  def to_s(_options = { show: true })
-    if _options[:show]
+  def to_s(options = { show: true })
+    if options[:show]
       show_cards = cards.join(', ')
       show_points = total_points
       show_purse = @purse
