@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Validation
   def self.included(base)
     base.extend ClassMethods
@@ -43,15 +45,11 @@ module Validation
     end
 
     def max_length_validation(value, option)
-      unless value.nil?
-        raise "Значение не может быть больше #{option}." if value.size > option.to_i
-      end
+      raise "Значение не может быть больше #{option}." if !value.nil? && (value.size > option.to_i)
     end
 
     def min_length_validation(value, option)
-      unless value.nil?
-        raise "Значение не может быть меньше #{option}." if value.size < option.to_i
-      end
+      raise "Значение не может быть меньше #{option}." if !value.nil? && (value.size < option.to_i)
     end
 
     def validate!
