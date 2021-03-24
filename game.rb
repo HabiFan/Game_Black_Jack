@@ -21,13 +21,13 @@ class Game
   end
 
   def start_game
-      @player = Player.new(@interface.set_player)
-    rescue RuntimeError => e
-      @interface.show_error(e)
-      retry
-    ensure
-      @dealer = Dealer.new
-      start_new_game
+    @player = Player.new(@interface.set_player)
+  rescue RuntimeError => e
+    @interface.show_error(e)
+    retry
+  ensure
+    @dealer = Dealer.new
+    start_new_game
   end
 
   private
@@ -70,7 +70,7 @@ class Game
 
   def game_result
     if (@player.hand.total_points <= 21) &&
-      ((21 - @player.hand.total_points).abs < (21 - @dealer.hand.total_points).abs)
+       ((21 - @player.hand.total_points).abs < (21 - @dealer.hand.total_points).abs)
       winner(@player)
     elsif ((21 - @player.hand.total_points) == (21 - @dealer.hand.total_points)) &&
           (@player.hand.total_points <= 21 && @dealer.hand.total_points <= 21)

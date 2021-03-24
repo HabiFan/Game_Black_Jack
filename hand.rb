@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Hand
   attr_accessor :cards, :total_score
 
@@ -15,11 +17,11 @@ class Hand
   def scope_cards
     points = 0
     @cards.each do |card|
-      if card.rating_card == 11
-        points += (points + 11) > 21 ? 1 : 11
-      else
-        points += card.rating_card
-      end
+      points += if card.rating_card == 11
+                  (points + 11) > 21 ? 1 : 11
+                else
+                  card.rating_card
+                end
     end
     @total_points = points
   end
@@ -29,13 +31,12 @@ class Hand
   end
 
   def to_s
-    "#{print_cards { |card|  "#{card.rank}#{card.suit}" }}"
+    print_cards { |card| "#{card.rank}#{card.suit}" }
   end
 
   private
 
   def print_cards(&block)
-    @cards.map(&block).join(", ") if block_given?
+    @cards.map(&block).join(', ') if block_given?
   end
-
 end

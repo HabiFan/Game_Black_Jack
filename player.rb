@@ -36,17 +36,6 @@ class Player
     @purse -= sum
   end
 
-  # def to_s(options = { show: true })
-  #   if options[:show]
-  #     show_cards = cards.join(', ')
-  #     show_points = total_points
-  #     show_purse = @purse
-  #   else
-  #     show_cards = show_points = show_purse = '***'
-  #   end
-  #   "Карты: #{show_cards}. Набранные очки: #{show_points} Сумма в кошельке: #{show_purse}$"
-  # end
-
   private
 
   attr_writer :name, :type_player, :purse

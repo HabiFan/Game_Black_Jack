@@ -1,5 +1,6 @@
-class TerminalInterface
+# frozen_string_literal: true
 
+class TerminalInterface
   ACTION_GAME = <<~HERE
     Ход игрока:
     1. Пропустить ход
@@ -17,18 +18,20 @@ class TerminalInterface
 
   def set_player
     puts 'Введите имя:'
-    name = gets.chomp
+    gets.chomp
   end
 
-  def show_error(e)
-    puts "#{e.message}\n Повторите попытку!"
+  def show_error(err)
+    puts "#{err.message}\nПовторите попытку!"
   end
 
   def show_cards_player(user, options = { hidden: false })
     if options[:hidden]
       cards = score = purse = '***'
     else
-      cards, score, purse = user.hand.cards.to_s, user.hand.total_points, user.purse
+      cards = user.hand.to_s
+      score = user.hand.total_points
+      purse = user.purse
     end
     puts "У игрока #{user.name}, Карты: #{cards}. Очков: #{score} В кошельке: #{purse}$"
   end
@@ -52,11 +55,11 @@ class TerminalInterface
 
   def restart_game
     puts MENU_RESTART
-    action = gets.chomp.to_i
+    gets.chomp.to_i
   end
 
   def show_ponits(user, options = { hidden: false })
-    options[hidden] ? sum = '***' : sum = user.purse
+    sum = options[hidden] ? '***' : user.purse
     puts "Сумма в кошельке у #{user.name}: #{sum}$"
   end
 

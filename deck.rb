@@ -1,7 +1,8 @@
-class Deck
+# frozen_string_literal: true
 
-  SUITS = ["\u{2660}", "\u{2663}", "\u{2665}", "\u{2666}"]
-  RANKS = %w(2 3 4 5 6 7 8 9 10 J Q K A)
+class Deck
+  SUITS = ["\u{2660}", "\u{2663}", "\u{2665}", "\u{2666}"].freeze
+  RANKS = %w[2 3 4 5 6 7 8 9 10 J Q K A].freeze
 
   attr_reader :cards
 
@@ -22,5 +23,4 @@ class Deck
   def build_deck
     RANKS.flat_map { |rank| SUITS.flat_map { |suit| Card.new(rank, suit) } }
   end
-
 end

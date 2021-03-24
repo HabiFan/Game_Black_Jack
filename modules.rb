@@ -57,20 +57,3 @@ module Validation
     end
   end
 end
-
-module GameLabels
-  ACTION_GAME = <<~HERE
-    Ход игрока:
-    1. Пропустить ход
-    2. Добавить карту
-    3. Открыть карты
-  HERE
-
-  INFO_LABEL = 'Выберите нужное действие'
-
-  MENU_GAME = <<~HERE
-    Выберите нужное действие
-    1. Начать новую игру
-    2. Закончить игру
-  HERE
-end
