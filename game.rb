@@ -1,63 +1,67 @@
 # frozen_string_literal: true
 
 # rubocop:disable Metrics/ClassLength
-
 require_relative 'modules'
+require_relative 'terminal_interface'
 require_relative 'card'
+require_relative 'deck'
+require_relative 'dealer'
 require_relative 'player'
+require_relative 'hand'
 
 class Game
   include Validation
-  include GameLabels
 
   def initialize
     @bank = 0
     @rate = 10
-    @cards = Card.new
+    @deck = Deck.new
+    @interface = TerminalInterface.new
     start_game
   end
 
   def start_game
-    @dealer = Player.new('Dealer', :dealer)
-    puts 'Ваше имя?: '
-    @player = Player.new(gets.chomp.to_s)
-    start_new_game
+      @player = Player.new(@interface.set_player)
+    rescue RuntimeError => e
+      @interface.show_error(e)
+      retry
+    ensure
+      @dealer = Dealer.new
+      start_new_game
   end
 
   private
 
   def start_new_game
     end_game if (@dealer.purse || @player.purse) <= 0
-    puts 'Начало игры!'
-    @cards.start_deck
     @dealer.spend_purse(@rate)
     @player.spend_purse(@rate)
     @bank = @rate * 2
-    puts "Сумма в банке: #{@bank}$"
+    @interface.show_start_game(@bank, @rate)
     add_card(@dealer, 2)
     add_card(@player, 2)
     choice_player
   end
 
-  def add_card(player, num_card = 1)
-    puts "Игрок #{player.name} взял карту"
-    player.add_card(@cards.give_card(num_card))
-    puts player.to_s(show: !player.dealer?).to_s
-    game_result if @dealer.cards.size == 3 && @player.cards.size == 3
-    choice_action(player) unless num_card > 1
+  def add_card(user, num_card = 1)
+    @interface.show_add_card(user)
+    user.add_card(@deck.give_card(num_card))
+    @interface.show_cards_player(user, hidden: user.dealer?)
+    game_result if @dealer.hand.cards.size == 3 && @player.hand.cards.size == 3
+    choice_action(user) unless num_card > 1
   end
 
   def choice_action(player)
     player.dealer? ? choice_player : choice_dealer
   end
 
-  def skip(player)
-    puts "Игрок #{player.name} пропустил ход."
-    choice_action(player)
+  def skip(user)
+    @interface.show_skip(user)
+    choice_action(user)
   end
 
-  def open_card(player)
-    puts "Игрок #{player.name} выбрал открыть карты."
+  def open_card(user)
+    @interface.show_open_cards(user)
     game_result
   end
 
@@ -65,15 +69,16 @@ class Game
   # rubocop:disable Metrics/AbcSize
 
   def game_result
-    if (@player.total_points <= 21) && ((21 - @player.total_points).abs < (21 - @dealer.total_points).abs)
+    if (@player.hand.total_points <= 21) &&
+      ((21 - @player.hand.total_points).abs < (21 - @dealer.hand.total_points).abs)
       winner(@player)
-    elsif ((21 - @player.total_points) == (21 - @dealer.total_points)) &&
-          (@player.total_points <= 21 && @dealer.total_points <= 21)
+    elsif ((21 - @player.hand.total_points) == (21 - @dealer.hand.total_points)) &&
+          (@player.hand.total_points <= 21 && @dealer.hand.total_points <= 21)
       winner(@player, @dealer)
-    elsif @dealer.total_points <= 21
+    elsif @dealer.hand.total_points <= 21
       winner(@dealer)
     else
-      puts 'Все проиграли!'
+      @interface.not_winner
       end_game
     end
   end
@@ -83,54 +88,50 @@ class Game
 
   def choice_player
     loop do
-      puts ACTION_GAME
-      case gets.chomp.to_i
+      case @interface.show_menu_player
       when 1 then skip(@player)
       when 2 then add_card(@player, 1)
       when 3 then open_card(@player)
       else
-        puts INFO_LABEL; end
+        @interface.show_info_label; end
     end
   end
 
   def choice_dealer
-    puts 'Ход игрока Дилера: '
-    @dealer.total_points >= 17 ? skip(@dealer) : add_card(@dealer, 1)
+    @interface.show_move_player(@dealer)
+    @dealer.hand.total_points >= 17 ? skip(@dealer) : add_card(@dealer, 1)
   end
 
   def winner(*players)
-    print 'Результат игры: '
+    @interface.show_result_game
     if players.size > 1
-      puts "Ничья! Выйгрыш: по #{@rate}$"
+      @interface.show_evil(@rate)
       players.each { |player| player.spend(@rate) }
     else
-      puts "Выграл #{players.first.name}! Выйгрыш: #{@bank}$"
+      @interface.show_winner(players.first, @bank)
       players.first.purse_add(@bank)
     end
     end_game
   end
 
-  def info_game(options = { show_dealer: false })
-    puts "Дилер: #{@dealer.to_s(show: options[:show_dealer])}"
-    puts "Игрок (#{@player.name}): #{@player}"
-  end
-
   def end_game
-    info_game(show_dealer: true)
+    @interface.show_cards_player(@player)
+    @interface.show_cards_player(@dealer)
     @bank = 0
-    @dealer.reset_cards
-    @player.reset_cards
+    @dealer.hand.reset_cards
+    @player.hand.reset_cards
+    @deck.create_deck
+    @interface.game_over
     restart_game
   end
 
   def restart_game
-    puts MENU_GAME
     loop do
-      case gets.chomp.to_i
+      case @interface.restart_game
       when 1 then start_new_game
       when 2 then exit!
       else
-        puts INFO_LABEL; end
+        @interface.show_info_label; end
     end
   end
 end
