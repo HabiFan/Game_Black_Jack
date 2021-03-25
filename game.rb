@@ -16,7 +16,6 @@ class Game
     @bank = 0
     @rate = 10
     @deck = Deck.new
-    @winner = []
     @interface = TerminalInterface.new
     start_game
   end
@@ -66,12 +65,6 @@ class Game
     game_result
   end
 
-  def game_result
-    winner(spot_winner) unless spot_winner.nil?
-    winner(@player, @dealer) if valid_score(@player) == valid_score(@dealer)
-    end_game
-  end
-
   def choice_player
     loop do
       case @interface.show_menu_player
@@ -88,22 +81,42 @@ class Game
     @dealer.hand.total_points >= 17 ? skip(@dealer) : add_card(@dealer, 1)
   end
 
-  def spot_winner
-    score_match = valid_score(@player) <=> valid_score(@dealer)
+  def game_result
+    winner(@player) if player_winner?
+    winner(@dealer) if dealer_winner?
+    winner(@player, @dealer) if evil_game?
+    end_game
+  end
 
-    return @player if score_match.positive? && valid_score(@dealer).negative?
-    return @dealer if score_match.negative? && valid_score(@player).positive?
+  def evil_game?
+    match_score.zero? && (valid_score(@player) && valid_score(@dealer))
+  end
+
+  def not_winner?
+    !valid_score(@player) && !valid_score(@dealer)
+  end
+
+  def player_winner?
+    match_score.positive? && valid_score(@player) || valid_score(@player) && !valid_score(@dealer)
+  end
+
+  def dealer_winner?
+    match_score.negative? && valid_score(@dealer) || valid_score(@dealer) && !valid_score(@player)
   end
 
   def valid_score(user)
-    user.hand.total_points <=> 21
+    (user.hand.total_points <=> 21) <= 0
+  end
+
+  def match_score
+    @player.hand.total_points <=> @dealer.hand.total_points
   end
 
   def winner(*players)
     @interface.show_result_game
     if players.size > 1
       @interface.show_evil(@rate)
-      players.each { |player| player.spend(@rate) }
+      players.each { |player| player.purse_add(@rate) }
     else
       @interface.show_winner(players.first, @bank)
       players.first.purse_add(@bank)
@@ -112,7 +125,7 @@ class Game
   end
 
   def end_game
-    @interface.not_winner if spot_winner.nil?
+    @interface.not_winner if not_winner?
     @interface.show_cards_player(@player)
     @interface.show_cards_player(@dealer)
     @bank = 0
