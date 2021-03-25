@@ -16,6 +16,7 @@ class Game
     @bank = 0
     @rate = 10
     @deck = Deck.new
+    @winner = []
     @interface = TerminalInterface.new
     start_game
   end
@@ -65,26 +66,11 @@ class Game
     game_result
   end
 
-  # rubocop:disable Metrics/MethodLength
-  # rubocop:disable Metrics/AbcSize
-
   def game_result
-    if (@player.hand.total_points <= 21) &&
-       ((21 - @player.hand.total_points).abs < (21 - @dealer.hand.total_points).abs)
-      winner(@player)
-    elsif ((21 - @player.hand.total_points) == (21 - @dealer.hand.total_points)) &&
-          (@player.hand.total_points <= 21 && @dealer.hand.total_points <= 21)
-      winner(@player, @dealer)
-    elsif @dealer.hand.total_points <= 21
-      winner(@dealer)
-    else
-      @interface.not_winner
-      end_game
-    end
+    winner(spot_winner) unless spot_winner.nil?
+    winner(@player, @dealer) if valid_score(@player) == valid_score(@dealer)
+    end_game
   end
-
-  # rubocop:enable Metrics/MethodLength
-  # rubocop:enable Metrics/AbcSize
 
   def choice_player
     loop do
@@ -102,6 +88,17 @@ class Game
     @dealer.hand.total_points >= 17 ? skip(@dealer) : add_card(@dealer, 1)
   end
 
+  def spot_winner
+    score_match = valid_score(@player) <=> valid_score(@dealer)
+
+    return @player if score_match.positive? && valid_score(@dealer).negative?
+    return @dealer if score_match.negative? && valid_score(@player).positive?
+  end
+
+  def valid_score(user)
+    user.hand.total_points <=> 21
+  end
+
   def winner(*players)
     @interface.show_result_game
     if players.size > 1
@@ -115,6 +112,7 @@ class Game
   end
 
   def end_game
+    @interface.not_winner if spot_winner.nil?
     @interface.show_cards_player(@player)
     @interface.show_cards_player(@dealer)
     @bank = 0
